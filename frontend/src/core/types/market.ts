@@ -3,29 +3,32 @@
  */
 
 // Side of the order (buy/sell)
-export const enum OrderSide {
-  BID = 'BID',  // Buy order
-  ASK = 'ASK',  // Sell order
-}
+export const OrderSide = {
+  BID: 'BID',
+  ASK: 'ASK',
+} as const;
+export type OrderSide = typeof OrderSide[keyof typeof OrderSide];
 
 // Type of order
-export const enum OrderType {
-  MARKET = 'MARKET',      // Execute immediately at best available price
-  LIMIT = 'LIMIT',        // Execute at specified price or better
-  ICEBERG = 'ICEBERG',    // Large order with only portion visible
-  HIDDEN = 'HIDDEN',      // Not displayed in order book
-  POST_ONLY = 'POST_ONLY', // Only add liquidity, cancel if would take
-}
+export const OrderType = {
+  MARKET: 'MARKET',
+  LIMIT: 'LIMIT',
+  ICEBERG: 'ICEBERG',
+  HIDDEN: 'HIDDEN',
+  POST_ONLY: 'POST_ONLY',
+} as const;
+export type OrderType = typeof OrderType[keyof typeof OrderType];
 
 // Order status
-export const enum OrderStatus {
-  PENDING = 'PENDING',       // Not yet submitted
-  SUBMITTED = 'SUBMITTED',   // Sent to venue
-  PARTIAL = 'PARTIAL',       // Partially filled
-  FILLED = 'FILLED',         // Completely filled
-  CANCELLED = 'CANCELLED',   // Cancelled by user or system
-  REJECTED = 'REJECTED',     // Rejected by venue
-}
+export const OrderStatus = {
+  PENDING: 'PENDING',
+  SUBMITTED: 'SUBMITTED',
+  PARTIAL: 'PARTIAL',
+  FILLED: 'FILLED',
+  CANCELLED: 'CANCELLED',
+  REJECTED: 'REJECTED',
+} as const;
+export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
 
 // Level in the order book (price level)
 export interface PriceLevel {

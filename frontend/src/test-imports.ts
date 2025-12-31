@@ -1,5 +1,5 @@
 // Test file to verify imports work
-import { Order, Venue, OrderBook } from './core/types/market';
+import type { Order } from './core/types/market';
 
 const testOrder: Order = {
   id: '1',

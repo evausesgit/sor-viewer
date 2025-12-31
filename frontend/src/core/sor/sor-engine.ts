@@ -126,7 +126,7 @@ export class SOREngine {
   private static filterVenues(
     venues: Venue[],
     orderBooks: Map<string, OrderBook>,
-    config: SORConfig
+    _config: SORConfig
   ): Venue[] {
     return venues.filter(venue => {
       // Doit être active

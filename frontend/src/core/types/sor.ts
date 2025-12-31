@@ -5,14 +5,15 @@
 import type { Order, Execution } from './market';
 
 // SOR routing strategy
-export const enum RoutingStrategy {
-  BEST_PRICE = 'BEST_PRICE',                 // Route to best price first
-  PRO_RATA = 'PRO_RATA',                     // Split proportionally by liquidity
-  VWAP = 'VWAP',                             // Volume Weighted Average Price
-  TWAP = 'TWAP',                             // Time Weighted Average Price
-  MINIMIZE_IMPACT = 'MINIMIZE_IMPACT',       // Minimize market impact
-  MINIMIZE_COST = 'MINIMIZE_COST',           // Minimize total cost (price + fees)
-}
+export const RoutingStrategy = {
+  BEST_PRICE: 'BEST_PRICE',
+  PRO_RATA: 'PRO_RATA',
+  VWAP: 'VWAP',
+  TWAP: 'TWAP',
+  MINIMIZE_IMPACT: 'MINIMIZE_IMPACT',
+  MINIMIZE_COST: 'MINIMIZE_COST',
+} as const;
+export type RoutingStrategy = typeof RoutingStrategy[keyof typeof RoutingStrategy];
 
 // Configuration for SOR execution
 export interface SORConfig {

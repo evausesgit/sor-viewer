@@ -19,7 +19,7 @@ const PriceLevelRow: React.FC<{
   venueColor: string;
   executedQuantity?: number;
   percentageTaken?: number;
-}> = ({ level, side, maxQuantity, venueColor, executedQuantity, percentageTaken }) => {
+}> = ({ level, side, maxQuantity, venueColor: _venueColor, executedQuantity, percentageTaken: _percentageTaken }) => {
   const percentage = (level.quantity / maxQuantity) * 100;
   const bgColor = side === 'bid' ? 'bg-bid/10' : 'bg-ask/10';
   const isExecuted = executedQuantity && executedQuantity > 0;

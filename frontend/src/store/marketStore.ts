@@ -124,7 +124,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
 
   // Execute order with animation
   executeOrder: (order: Order) => {
-    const { venues, orderBooks, symbol } = get();
+    const { venues, orderBooks, symbol: _symbol } = get();
 
     try {
       // 1. Générer le routing plan avec la configuration par défaut
