@@ -4,10 +4,12 @@
 
 import { useMemo, Fragment } from 'react';
 import type { Venue, OrderBook } from '../../core/types/market';
+import type { VenueExecutionDetail } from '../../core/sor/execution-simulator';
 
 interface AggregatedOrderBookProps {
   venues: Venue[];
   orderBooks: Map<string, OrderBook>;
+  executionDetails?: Map<string, VenueExecutionDetail>;
 }
 
 interface AggregatedLevel {
@@ -21,6 +23,7 @@ interface AggregatedLevel {
 export const AggregatedOrderBook: React.FC<AggregatedOrderBookProps> = ({
   venues,
   orderBooks,
+  executionDetails,
 }) => {
   // Aggregate order books from all venues
   const aggregatedLevels = useMemo(() => {
@@ -101,6 +104,24 @@ export const AggregatedOrderBook: React.FC<AggregatedOrderBookProps> = ({
   }, [venues, orderBooks]);
 
   const activeVenues = venues.filter((v) => v.active);
+
+  // Créer un lookup pour les exécutions par (venueId, price)
+  const executionLookup = useMemo(() => {
+    const lookup = new Map<string, number>(); // key: "venueId-price" -> quantityTaken
+    if (executionDetails) {
+      executionDetails.forEach((detail, venueId) => {
+        detail.levels.forEach(level => {
+          lookup.set(`${venueId}-${level.price}`, level.quantityTaken);
+        });
+      });
+    }
+    return lookup;
+  }, [executionDetails]);
+
+  // Vérifier si une cellule a une exécution
+  const getExecutedQuantity = (venueId: string, price: number): number => {
+    return executionLookup.get(`${venueId}-${price}`) || 0;
+  };
 
   // Find spread (best bid and best ask)
   const bestBid = aggregatedLevels.find((level) => level.totalBid > 0)?.price || 0;
@@ -200,14 +221,31 @@ export const AggregatedOrderBook: React.FC<AggregatedOrderBookProps> = ({
                   }`}
                 >
                   {/* Bid quantities per venue */}
-                  {activeVenues.map((venue) => (
-                    <td
-                      key={`bid-${venue.id}-${level.price}`}
-                      className="px-2 py-1.5 text-center text-slate-300"
-                    >
-                      {level.bidQuantities.get(venue.id)?.toLocaleString() || '-'}
-                    </td>
-                  ))}
+                  {activeVenues.map((venue) => {
+                    const qty = level.bidQuantities.get(venue.id);
+                    const executed = getExecutedQuantity(venue.id, level.price);
+                    const hasExecution = executed > 0 && qty;
+
+                    return (
+                      <td
+                        key={`bid-${venue.id}-${level.price}`}
+                        className={`px-2 py-1.5 text-center ${
+                          hasExecution ? 'bg-blue-500/20 border-l-2 border-blue-500' : ''
+                        }`}
+                      >
+                        {qty ? (
+                          hasExecution ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-blue-400 font-bold text-[10px]">-{executed.toLocaleString()}</span>
+                              <span className="text-slate-400 line-through text-[10px]">{qty.toLocaleString()}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300">{qty.toLocaleString()}</span>
+                          )
+                        ) : '-'}
+                      </td>
+                    );
+                  })}
 
                   {/* Total Bid */}
                   <td className="px-3 py-1.5 text-center font-semibold text-bid border-l border-slate-700">
@@ -230,14 +268,31 @@ export const AggregatedOrderBook: React.FC<AggregatedOrderBookProps> = ({
                   </td>
 
                   {/* Ask quantities per venue */}
-                  {activeVenues.map((venue) => (
-                    <td
-                      key={`ask-${venue.id}-${level.price}`}
-                      className="px-2 py-1.5 text-center text-slate-300"
-                    >
-                      {level.askQuantities.get(venue.id)?.toLocaleString() || '-'}
-                    </td>
-                  ))}
+                  {activeVenues.map((venue) => {
+                    const qty = level.askQuantities.get(venue.id);
+                    const executed = getExecutedQuantity(venue.id, level.price);
+                    const hasExecution = executed > 0 && qty;
+
+                    return (
+                      <td
+                        key={`ask-${venue.id}-${level.price}`}
+                        className={`px-2 py-1.5 text-center ${
+                          hasExecution ? 'bg-blue-500/20 border-l-2 border-blue-500' : ''
+                        }`}
+                      >
+                        {qty ? (
+                          hasExecution ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-blue-400 font-bold text-[10px]">-{executed.toLocaleString()}</span>
+                              <span className="text-slate-400 line-through text-[10px]">{qty.toLocaleString()}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300">{qty.toLocaleString()}</span>
+                          )
+                        ) : '-'}
+                      </td>
+                    );
+                  })}
                 </tr>
 
                 {/* Ligne de spread entre ASK et BID */}

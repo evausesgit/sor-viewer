@@ -209,7 +209,7 @@ function App() {
           </div>
         </>
       ) : (
-        <AggregatedOrderBook venues={venues} orderBooks={orderBooks} />
+        <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={executionDetails} />
       )}
 
       {/* Execution Timeline - affichée en bas pendant et après l'exécution */}
