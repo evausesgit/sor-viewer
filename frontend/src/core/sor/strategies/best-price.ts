@@ -7,9 +7,10 @@ import { OrderSide } from '../../types/market';
  *
  * Cette stratégie simple :
  * 1. Agrège tous les niveaux de prix de toutes les venues
- * 2. Trie tous les niveaux par meilleur prix
- * 3. Consomme la liquidité niveau par niveau jusqu'à remplir l'ordre
- * 4. Retourne une décision par niveau de prix (pas agrégé par venue)
+ * 2. Filtre par prix limite si ordre LIMIT (BUY: prix <= limite, SELL: prix >= limite)
+ * 3. Trie tous les niveaux par meilleur prix
+ * 4. Consomme la liquidité niveau par niveau jusqu'à remplir l'ordre
+ * 5. Retourne une décision par niveau de prix (pas agrégé par venue)
  *
  * @param order - L'ordre parent à router
  * @param venues - Liste des venues disponibles
@@ -59,10 +60,29 @@ export function executeBestPriceStrategy(
     return [];
   }
 
-  // 3. Trier tous les niveaux par prix
+  // 3. Filtrer par prix limite si l'ordre est un LIMIT
+  let filteredLevels = allPriceLevels;
+  if (order.price !== undefined) {
+    filteredLevels = allPriceLevels.filter(level => {
+      if (order.side === OrderSide.BID) {
+        // Pour un BUY : ne prendre que les prix <= prix limite
+        return level.price <= order.price!;
+      } else {
+        // Pour un SELL : ne prendre que les prix >= prix limite
+        return level.price >= order.price!;
+      }
+    });
+  }
+
+  if (filteredLevels.length === 0) {
+    console.warn('No price levels match the limit price constraint');
+    return [];
+  }
+
+  // 4. Trier tous les niveaux par prix
   // Pour un ordre BUY (BID) : on veut le prix le plus bas (ascending)
   // Pour un ordre SELL (ASK) : on veut le prix le plus haut (descending)
-  allPriceLevels.sort((a, b) => {
+  filteredLevels.sort((a, b) => {
     if (order.side === OrderSide.BID) {
       return a.price - b.price; // Plus bas d'abord
     } else {
@@ -70,12 +90,12 @@ export function executeBestPriceStrategy(
     }
   });
 
-  // 4. Consommer la liquidité niveau par niveau et créer une décision par niveau
+  // 5. Consommer la liquidité niveau par niveau et créer une décision par niveau
   let remainingQuantity = order.quantity;
   const decisions: RoutingDecision[] = [];
   let priority = 0;
 
-  for (const level of allPriceLevels) {
+  for (const level of filteredLevels) {
     if (remainingQuantity <= 0) break;
 
     // Quantité à prendre sur ce niveau
