@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import type { OrderBook as OrderBookType, PriceLevel } from '../../core/types/market';
+import type { OrderBook as OrderBookType } from '../../core/types/market';
 import type { VenueExecutionDetail } from '../../core/sor/execution-simulator';
 
 interface OrderBookProps {
@@ -12,64 +12,7 @@ interface OrderBookProps {
   executionDetail?: VenueExecutionDetail;
 }
 
-const PriceLevelRow: React.FC<{
-  level: PriceLevel;
-  side: 'bid' | 'ask';
-  maxQuantity: number;
-  venueColor: string;
-  executedQuantity?: number;
-  percentageTaken?: number;
-}> = ({ level, side, maxQuantity, venueColor: _venueColor, executedQuantity, percentageTaken: _percentageTaken }) => {
-  const percentage = (level.quantity / maxQuantity) * 100;
-  const bgColor = side === 'bid' ? 'bg-bid/10' : 'bg-ask/10';
-  const isExecuted = executedQuantity && executedQuantity > 0;
-
-  return (
-    <div className={`relative flex justify-between text-xs py-0.5 px-2 hover:bg-slate-700/30 transition-all duration-300 ${
-      isExecuted ? 'bg-blue-500/20 border-l-2 border-blue-500' : ''
-    }`}>
-      {/* Background bar showing quantity */}
-      <div
-        className={`absolute inset-y-0 ${side === 'bid' ? 'right-0' : 'left-0'} ${bgColor}`}
-        style={{ width: `${percentage}%` }}
-      />
-
-      {/* Execution overlay */}
-      {isExecuted && (
-        <div
-          className="absolute inset-y-0 right-0 bg-blue-600/30"
-          style={{ width: `${(executedQuantity / level.quantity) * 100}%` }}
-        />
-      )}
-
-      {/* Price */}
-      <span className={`relative z-10 font-mono ${side === 'bid' ? 'text-bid' : 'text-ask'} ${
-        isExecuted ? 'font-bold' : ''
-      }`}>
-        {level.price.toFixed(2)}
-      </span>
-
-      {/* Quantity - montrer restant si exécuté */}
-      <div className="relative z-10 flex items-center gap-1">
-        {isExecuted && (
-          <span className="font-mono text-blue-400 font-bold text-[10px]">
-            -{executedQuantity.toLocaleString()}
-          </span>
-        )}
-        <span className={`font-mono ${isExecuted ? 'text-slate-400 line-through' : 'text-slate-300'}`}>
-          {level.quantity.toLocaleString()}
-        </span>
-      </div>
-
-      {/* Order count */}
-      <span className="relative z-10 font-mono text-slate-500 text-[10px]">
-        ({level.orderCount})
-      </span>
-    </div>
-  );
-};
-
-export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor, executionDetail }) => {
+export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor: _venueColor, executionDetail }) => {
   const maxBidQty = Math.max(...orderBook.bids.map((l) => l.quantity), 1);
   const maxAskQty = Math.max(...orderBook.asks.map((l) => l.quantity), 1);
 
@@ -84,65 +27,111 @@ export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor, exe
     });
   }
 
+  // Préparer les données : prendre les 10 meilleurs de chaque côté
+  const bidLevels = orderBook.bids.slice(0, 10);
+  const askLevels = orderBook.asks.slice(0, 10).reverse(); // Inverser pour avoir meilleur ask en haut
+
+  const maxRows = Math.max(bidLevels.length, askLevels.length);
+
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between text-xs px-2 py-1.5 bg-slate-900 border-b border-slate-700">
-        <span className="text-slate-400 font-semibold">Price</span>
-        <span className="text-slate-400 font-semibold">Quantity</span>
-        <span className="text-slate-400 font-semibold text-[10px]">Orders</span>
+      <div className="grid grid-cols-4 text-xs px-2 py-1.5 bg-slate-900 border-b border-slate-700 gap-2">
+        <span className="text-bid font-semibold text-right">Qty BID</span>
+        <span className="text-bid font-semibold text-center">BID</span>
+        <span className="text-ask font-semibold text-center">ASK</span>
+        <span className="text-ask font-semibold text-left">Qty ASK</span>
       </div>
 
       <div className="flex-1 overflow-y-auto order-book-scroll">
-        {/* Ask levels (top half, reversed to show best ask closest to spread) */}
-        <div className="flex flex-col-reverse">
-          {orderBook.asks.slice(0, 10).map((level, idx) => {
-            const execution = executionByPrice.get(level.price);
-            return (
-              <PriceLevelRow
-                key={`ask-${idx}`}
-                level={level}
-                side="ask"
-                maxQuantity={maxAskQty}
-                venueColor={venueColor}
-                executedQuantity={execution?.quantityTaken}
-                percentageTaken={execution?.percentageTaken}
-              />
-            );
-          })}
-        </div>
-
-        {/* Spread indicator */}
-        <div className="flex justify-center items-center py-2 bg-slate-900/50">
+        {/* Spread en première ligne */}
+        <div className="flex justify-center items-center py-2 bg-slate-700/30 border-b border-slate-700">
           <div className="text-xs">
             <span className="text-slate-500">Spread: </span>
             <span className="text-slate-300 font-mono font-semibold">
               ${orderBook.spread.toFixed(4)}
             </span>
-            <span className="text-slate-500 ml-2">Mid: </span>
-            <span className="text-slate-300 font-mono">
-              ${orderBook.midPrice.toFixed(2)}
-            </span>
           </div>
         </div>
 
-        {/* Bid levels (bottom half) */}
-        <div>
-          {orderBook.bids.slice(0, 10).map((level, idx) => {
-            const execution = executionByPrice.get(level.price);
-            return (
-              <PriceLevelRow
-                key={`bid-${idx}`}
-                level={level}
-                side="bid"
-                maxQuantity={maxBidQty}
-                venueColor={venueColor}
-                executedQuantity={execution?.quantityTaken}
-                percentageTaken={execution?.percentageTaken}
-              />
-            );
-          })}
-        </div>
+        {/* Lignes avec BID et ASK côte à côte */}
+        {Array.from({ length: maxRows }, (_, i) => {
+          const bidLevel = bidLevels[i];
+          const askLevel = askLevels[i];
+
+          const bidExecution = bidLevel ? executionByPrice.get(bidLevel.price) : undefined;
+          const askExecution = askLevel ? executionByPrice.get(askLevel.price) : undefined;
+
+          return (
+            <div key={`row-${i}`} className="grid grid-cols-4 text-xs py-0.5 px-2 hover:bg-slate-700/30 transition-colors gap-2">
+              {/* Quantité BID avec barre */}
+              <div className={`relative text-right ${bidExecution ? 'bg-blue-500/20 border-r-2 border-blue-500' : ''}`}>
+                {bidLevel && (
+                  <>
+                    {/* Barre de couleur pour BID */}
+                    <div
+                      className="absolute inset-y-0 right-0 bg-bid/10"
+                      style={{ width: `${(bidLevel.quantity / maxBidQty) * 100}%` }}
+                    />
+                    {/* Texte */}
+                    <div className="relative z-10 flex items-center justify-end gap-1">
+                      {bidExecution && (
+                        <span className="font-mono text-blue-400 font-bold text-[10px]">
+                          -{bidExecution.quantityTaken.toLocaleString()}
+                        </span>
+                      )}
+                      <span className={`font-mono ${bidExecution ? 'text-slate-400 line-through' : 'text-slate-300'}`}>
+                        {bidLevel.quantity.toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Prix BID */}
+              <div className="text-center">
+                {bidLevel && (
+                  <span className={`font-mono text-bid ${bidExecution ? 'font-bold' : ''}`}>
+                    ${bidLevel.price.toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              {/* Prix ASK */}
+              <div className="text-center">
+                {askLevel && (
+                  <span className={`font-mono text-ask ${askExecution ? 'font-bold' : ''}`}>
+                    ${askLevel.price.toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              {/* Quantité ASK avec barre */}
+              <div className={`relative text-left ${askExecution ? 'bg-blue-500/20 border-l-2 border-blue-500' : ''}`}>
+                {askLevel && (
+                  <>
+                    {/* Barre de couleur pour ASK */}
+                    <div
+                      className="absolute inset-y-0 left-0 bg-ask/10"
+                      style={{ width: `${(askLevel.quantity / maxAskQty) * 100}%` }}
+                    />
+                    {/* Texte */}
+                    <div className="relative z-10 flex items-center gap-1">
+                      {askExecution && (
+                        <span className="font-mono text-blue-400 font-bold text-[10px]">
+                          -{askExecution.quantityTaken.toLocaleString()}
+                        </span>
+                      )}
+                      <span className={`font-mono ${askExecution ? 'text-slate-400 line-through' : 'text-slate-300'}`}>
+                        {askLevel.quantity.toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

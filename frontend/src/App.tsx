@@ -30,7 +30,7 @@ function App() {
     isPaused,
     togglePause
   } = useMarketStore();
-  const [activeTab, setActiveTab] = useState<TabType>('venues');
+  const [activeTab, setActiveTab] = useState<TabType>('aggregated');
 
   // Initialize market on mount
   useEffect(() => {
