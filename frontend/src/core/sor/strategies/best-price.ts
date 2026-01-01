@@ -1,20 +1,20 @@
 import type { Order, Venue, OrderBook } from '../../types/market';
 import type { RoutingDecision } from '../../types/sor';
 import { OrderSide } from '../../types/market';
-import { MarketSimulator } from '../../venues/market-simulator';
 
 /**
  * Execute la stratégie "Best Price First" pour router un ordre.
  *
  * Cette stratégie simple :
- * 1. Calcule le prix effectif (VWAP + frais) pour chaque venue
- * 2. Trie les venues par meilleur prix
- * 3. Alloue la quantité de manière greedy (prendre tout d'une venue avant la suivante)
+ * 1. Agrège tous les niveaux de prix de toutes les venues
+ * 2. Trie tous les niveaux par meilleur prix
+ * 3. Consomme la liquidité niveau par niveau jusqu'à remplir l'ordre
+ * 4. Retourne une décision par niveau de prix (pas agrégé par venue)
  *
  * @param order - L'ordre parent à router
  * @param venues - Liste des venues disponibles
  * @param orderBooks - Map des order books par venue ID
- * @returns Liste de décisions de routing triées par priorité d'exécution
+ * @returns Liste de décisions de routing (une par niveau de prix) triées par priorité d'exécution
  */
 export function executeBestPriceStrategy(
   order: Order,
@@ -26,93 +26,73 @@ export function executeBestPriceStrategy(
   // Si on vend (ASK), on prend la liquidité des acheteurs (bid)
   const bookSide: 'bid' | 'ask' = order.side === OrderSide.BID ? 'ask' : 'bid';
 
-  // 2. Construire un tableau de scoring pour chaque venue
-  interface VenueScore {
+  // 2. Agréger tous les niveaux de prix de toutes les venues
+  interface PriceLevel {
+    venueId: string;
     venue: Venue;
-    orderBook: OrderBook;
-    vwap: number;
-    fees: number;
-    effectivePrice: number;
-    availableLiquidity: number;
+    price: number;
+    quantity: number;
   }
 
-  const venueScores: VenueScore[] = venues
-    .filter(venue => {
-      // Filtrer les venues actives qui ont un order book
-      if (!venue.active) return false;
-      if (!orderBooks.has(venue.id)) return false;
+  const allPriceLevels: PriceLevel[] = [];
 
-      const orderBook = orderBooks.get(venue.id)!;
-      const liquidity = MarketSimulator.getTotalLiquidity(orderBook, bookSide);
+  venues.forEach(venue => {
+    // Filtrer les venues actives qui ont un order book
+    if (!venue.active) return;
+    if (!orderBooks.has(venue.id)) return;
 
-      // Exclure les venues sans liquidité
-      return liquidity > 0;
-    })
-    .map(venue => {
-      const orderBook = orderBooks.get(venue.id)!;
+    const orderBook = orderBooks.get(venue.id)!;
+    const levels = bookSide === 'bid' ? orderBook.bids : orderBook.asks;
 
-      // Calculer la liquidité disponible
-      const availableLiquidity = MarketSimulator.getTotalLiquidity(orderBook, bookSide);
-
-      // Calculer le VWAP pour la quantité demandée (ou la liquidité disponible si insuffisante)
-      const quantityToCalculate = Math.min(order.quantity, availableLiquidity);
-      const vwap = MarketSimulator.calculateVWAP(orderBook, bookSide, quantityToCalculate);
-
-      // Calculer les frais (on assume taker fees pour la simplicité)
-      const fees = vwap * quantityToCalculate * venue.takerFee;
-
-      // Prix effectif = VWAP + frais par unité
-      const effectivePrice = vwap + (fees / quantityToCalculate);
-
-      return {
-        venue,
-        orderBook,
-        vwap,
-        fees,
-        effectivePrice,
-        availableLiquidity
-      };
+    // Extraire chaque niveau de prix
+    levels.forEach(level => {
+      allPriceLevels.push({
+        venueId: venue.id,
+        venue: venue,
+        price: level.price,
+        quantity: level.quantity
+      });
     });
+  });
 
-  // 3. Trier par prix effectif
+  if (allPriceLevels.length === 0) {
+    return [];
+  }
+
+  // 3. Trier tous les niveaux par prix
   // Pour un ordre BUY (BID) : on veut le prix le plus bas (ascending)
   // Pour un ordre SELL (ASK) : on veut le prix le plus haut (descending)
-  venueScores.sort((a, b) => {
+  allPriceLevels.sort((a, b) => {
     if (order.side === OrderSide.BID) {
-      return a.effectivePrice - b.effectivePrice; // Plus bas d'abord
+      return a.price - b.price; // Plus bas d'abord
     } else {
-      return b.effectivePrice - a.effectivePrice; // Plus haut d'abord
+      return b.price - a.price; // Plus haut d'abord
     }
   });
 
-  // 4. Allouer la quantité de manière greedy
+  // 4. Consommer la liquidité niveau par niveau et créer une décision par niveau
   let remainingQuantity = order.quantity;
   const decisions: RoutingDecision[] = [];
+  let priority = 0;
 
-  venueScores.forEach((score, index) => {
-    if (remainingQuantity <= 0) return;
+  for (const level of allPriceLevels) {
+    if (remainingQuantity <= 0) break;
 
-    // Allouer autant que possible sur cette venue
-    const allocatedQuantity = Math.min(remainingQuantity, score.availableLiquidity);
-    remainingQuantity -= allocatedQuantity;
+    // Quantité à prendre sur ce niveau
+    const quantityToTake = Math.min(remainingQuantity, level.quantity);
 
-    // Recalculer VWAP et frais pour la quantité réellement allouée
-    const actualVwap = MarketSimulator.calculateVWAP(
-      score.orderBook,
-      bookSide,
-      allocatedQuantity
-    );
-    const actualFees = actualVwap * allocatedQuantity * score.venue.takerFee;
-
+    // Créer une décision pour ce niveau de prix
     decisions.push({
-      venueId: score.venue.id,
-      quantity: allocatedQuantity,
-      expectedPrice: actualVwap,
-      expectedFees: actualFees,
-      rationale: `Best price: $${score.effectivePrice.toFixed(2)}/share (VWAP: $${actualVwap.toFixed(2)} + fees: $${actualFees.toFixed(2)})`,
-      priority: index // L'ordre dans le tri détermine la priorité d'exécution
+      venueId: level.venueId,
+      quantity: quantityToTake,
+      expectedPrice: level.price,
+      expectedFees: 0, // Pas de frais
+      rationale: `${quantityToTake.toLocaleString()} @ $${level.price.toFixed(2)} on ${level.venueId}`,
+      priority: priority++
     });
-  });
+
+    remainingQuantity -= quantityToTake;
+  }
 
   return decisions;
 }

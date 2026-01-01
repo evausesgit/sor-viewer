@@ -5,11 +5,11 @@
 import { create } from 'zustand';
 import type { OrderBook, Venue, Order } from '../core/types/market';
 import type { RoutingPlan, ExecutionStep, SORConfig } from '../core/types/sor';
-import { OrderStatus } from '../core/types/market';
+import { OrderStatus, OrderSide } from '../core/types/market';
 import { DEFAULT_VENUES, DEFAULT_SYMBOL, DEFAULT_BASE_PRICE } from '../data/venues';
 import { MarketSimulator } from '../core/venues/market-simulator';
 import { SOREngine } from '../core/sor';
-import { simulateExecution, type VenueExecutionDetail } from '../core/sor/execution-simulator';
+import type { VenueExecutionDetail } from '../core/sor/execution-simulator';
 
 interface MarketState {
   // Market data
@@ -131,18 +131,32 @@ export const useMarketStore = create<MarketState>((set, get) => ({
       const config: SORConfig = SOREngine.createDefaultConfig();
       const routingPlan = SOREngine.generateRoutingPlan(order, venues, orderBooks, config);
 
-      // 2. Simuler l'exécution réelle pour calculer les détails par niveau de prix
+      // 2. Créer les détails d'exécution directement à partir des décisions
+      // Chaque décision représente maintenant un niveau de prix spécifique
       const executionDetails = new Map<string, VenueExecutionDetail>();
 
       routingPlan.decisions.forEach(decision => {
-        const orderBook = orderBooks.get(decision.venueId);
-        if (orderBook) {
-          const detail = simulateExecution(orderBook, order, decision.quantity);
-          detail.venueId = decision.venueId;
-          executionDetails.set(decision.venueId, detail);
-
-          console.log(`📍 Execution detail for ${decision.venueId}:`, detail);
+        // Créer ou mettre à jour le détail pour cette venue
+        if (!executionDetails.has(decision.venueId)) {
+          executionDetails.set(decision.venueId, {
+            venueId: decision.venueId,
+            side: order.side === OrderSide.BID ? 'ask' : 'bid',
+            totalQuantity: 0,
+            levels: [],
+            avgPrice: 0
+          });
         }
+
+        const detail = executionDetails.get(decision.venueId)!;
+        detail.totalQuantity += decision.quantity;
+        detail.levels.push({
+          price: decision.expectedPrice,
+          quantityTaken: decision.quantity,
+          quantityRemaining: 0, // Sera calculé dynamiquement si nécessaire
+          percentageTaken: 100 // On prend tout ce qu'on a décidé de prendre
+        });
+
+        console.log(`📍 Execution detail for ${decision.venueId} @ $${decision.expectedPrice}:`, decision.quantity);
       });
 
       // 3. Convertir les routing decisions en execution steps pour l'animation
@@ -232,7 +246,22 @@ export const useMarketStore = create<MarketState>((set, get) => ({
   // Toggle pause/play pour les mises à jour des order books
   togglePause: () => {
     const { isPaused } = get();
-    console.log(isPaused ? '▶️ PLAY - Order books updates resumed' : '⏸️ PAUSE - Order books updates paused');
-    set({ isPaused: !isPaused });
+
+    // Si on passe de PAUSE à PLAY, effacer les exécutions précédentes
+    if (isPaused) {
+      console.log('▶️ PLAY - Order books updates resumed, clearing previous executions');
+      set({
+        isPaused: false,
+        executionDetails: new Map(),
+        executionSteps: [],
+        currentStepIndex: -1,
+        isExecuting: false,
+        routingPlan: null,
+        currentOrder: null
+      });
+    } else {
+      console.log('⏸️ PAUSE - Order books updates paused');
+      set({ isPaused: true });
+    }
   },
 }));
