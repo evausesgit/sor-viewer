@@ -136,11 +136,11 @@ export const AggregatedOrderBook: React.FC<AggregatedOrderBookProps> = ({
   const bidLevels = allBids.slice(0, 10);
 
   // Meilleurs ASK = prix les plus bas (à la fin car trié décroissant)
-  // On inverse, prend 10, et re-inverse pour avoir ordre croissant
+  // On les prend et on les trie en ordre croissant (prix bas en haut)
   const askLevels = allAsks.slice(-10).reverse();
 
-  // Order book classique : ASK en haut (croissant), BID en bas (décroissant)
-  const displayLevels = [...askLevels, ...bidLevels];
+  // Nombre de lignes à afficher (max entre BID et ASK)
+  const maxRows = Math.max(bidLevels.length, askLevels.length);
 
   return (
     <div className="bg-slate-900 rounded-lg p-6">
@@ -206,29 +206,37 @@ export const AggregatedOrderBook: React.FC<AggregatedOrderBookProps> = ({
             </tr>
           </thead>
           <tbody>
-            {displayLevels.map((level, index) => {
-              const isBestBid = level.price === bestBid && level.totalBid > 0;
-              const isBestAsk = level.price === bestAsk && level.totalAsk > 0;
+            {/* Ligne de SPREAD en première ligne */}
+            <tr className="bg-slate-700/30">
+              <td colSpan={activeVenues.length * 2 + 4} className="px-3 py-2 text-center text-xs text-slate-400 font-semibold">
+                ═══ SPREAD: ${(bestAsk - bestBid).toFixed(2)} ═══
+              </td>
+            </tr>
 
-              // Insérer une ligne de spread après le dernier ASK
-              const showSpreadAfter = index === askLevels.length - 1;
+            {/* Lignes du carnet avec BID et ASK côte à côte */}
+            {Array.from({ length: maxRows }, (_, i) => {
+              const bidLevel = bidLevels[i];
+              const askLevel = askLevels[i];
+
+              const isBestBid = bidLevel && bidLevel.price === bestBid && bidLevel.totalBid > 0;
+              const isBestAsk = askLevel && askLevel.price === bestAsk && askLevel.totalAsk > 0;
 
               return (
-                <Fragment key={level.price}>
                 <tr
+                  key={`row-${i}`}
                   className={`border-t border-slate-800 hover:bg-slate-800/50 ${
                     isBestBid || isBestAsk ? 'bg-slate-800/30' : ''
                   }`}
                 >
                   {/* Bid quantities per venue */}
                   {activeVenues.map((venue) => {
-                    const qty = level.bidQuantities.get(venue.id);
-                    const executed = getExecutedQuantity(venue.id, level.price);
+                    const qty = bidLevel?.bidQuantities.get(venue.id);
+                    const executed = bidLevel ? getExecutedQuantity(venue.id, bidLevel.price) : 0;
                     const hasExecution = executed > 0 && qty;
 
                     return (
                       <td
-                        key={`bid-${venue.id}-${level.price}`}
+                        key={`bid-${venue.id}-${i}`}
                         className={`px-2 py-1.5 text-center ${
                           hasExecution ? 'bg-blue-500/20 border-l-2 border-blue-500' : ''
                         }`}
@@ -249,33 +257,33 @@ export const AggregatedOrderBook: React.FC<AggregatedOrderBookProps> = ({
 
                   {/* Total Bid */}
                   <td className="px-3 py-1.5 text-center font-semibold text-bid border-l border-slate-700">
-                    {level.totalBid > 0 ? level.totalBid.toLocaleString() : ''}
+                    {bidLevel && bidLevel.totalBid > 0 ? bidLevel.totalBid.toLocaleString() : ''}
                   </td>
 
                   {/* Bid Price */}
                   <td className="px-3 py-1.5 text-center font-mono font-semibold text-bid">
-                    {level.totalBid > 0 ? `$${level.price.toFixed(2)}` : ''}
+                    {bidLevel && bidLevel.totalBid > 0 ? `$${bidLevel.price.toFixed(2)}` : ''}
                   </td>
 
                   {/* Ask Price */}
                   <td className="px-3 py-1.5 text-center font-mono font-semibold text-ask">
-                    {level.totalAsk > 0 ? `$${level.price.toFixed(2)}` : ''}
+                    {askLevel && askLevel.totalAsk > 0 ? `$${askLevel.price.toFixed(2)}` : ''}
                   </td>
 
                   {/* Total Ask */}
                   <td className="px-3 py-1.5 text-center font-semibold text-ask border-r border-slate-700">
-                    {level.totalAsk > 0 ? level.totalAsk.toLocaleString() : ''}
+                    {askLevel && askLevel.totalAsk > 0 ? askLevel.totalAsk.toLocaleString() : ''}
                   </td>
 
                   {/* Ask quantities per venue */}
                   {activeVenues.map((venue) => {
-                    const qty = level.askQuantities.get(venue.id);
-                    const executed = getExecutedQuantity(venue.id, level.price);
+                    const qty = askLevel?.askQuantities.get(venue.id);
+                    const executed = askLevel ? getExecutedQuantity(venue.id, askLevel.price) : 0;
                     const hasExecution = executed > 0 && qty;
 
                     return (
                       <td
-                        key={`ask-${venue.id}-${level.price}`}
+                        key={`ask-${venue.id}-${i}`}
                         className={`px-2 py-1.5 text-center ${
                           hasExecution ? 'bg-blue-500/20 border-l-2 border-blue-500' : ''
                         }`}
@@ -294,16 +302,6 @@ export const AggregatedOrderBook: React.FC<AggregatedOrderBookProps> = ({
                     );
                   })}
                 </tr>
-
-                {/* Ligne de spread entre ASK et BID */}
-                {showSpreadAfter && (
-                  <tr className="bg-slate-700/30">
-                    <td colSpan={activeVenues.length * 2 + 4} className="px-3 py-2 text-center text-xs text-slate-400 font-semibold">
-                      ═══ SPREAD: ${(bestAsk - bestBid).toFixed(2)} ═══
-                    </td>
-                  </tr>
-                )}
-                </Fragment>
               );
             })}
           </tbody>
