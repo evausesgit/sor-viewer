@@ -34,7 +34,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor: _ve
   const maxRows = Math.max(bidLevels.length, askLevels.length);
 
   return (
-    <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
+    <div className="flex flex-col bg-slate-800 rounded-lg overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-4 text-[11px] px-2 py-1 bg-slate-900 border-b border-slate-700 gap-2">
         <span className="text-bid font-semibold text-right">Qty BID</span>
@@ -43,7 +43,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor: _ve
         <span className="text-ask font-semibold text-left">Qty ASK</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto order-book-scroll">
+      <div>
         {/* Spread en première ligne */}
         <div className="flex justify-center items-center py-1 bg-slate-700/30 border-b border-slate-700">
           <div className="text-[11px]">
