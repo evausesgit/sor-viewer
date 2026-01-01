@@ -32,7 +32,7 @@ export const VenuePanel: React.FC<VenuePanelProps> = ({ venue, orderBook, onTogg
     <div className="flex flex-col h-full bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
       {/* Venue header */}
       <div
-        className={`px-4 py-3 flex items-center justify-between relative transition-all duration-300 ${
+        className={`px-3 py-2 flex items-center justify-between relative transition-all duration-300 ${
           executionState?.isCurrentStep ? 'venue-executing' : ''
         }`}
         style={{ borderTopColor: venue.color, borderTopWidth: '3px' }}
@@ -74,7 +74,7 @@ export const VenuePanel: React.FC<VenuePanelProps> = ({ venue, orderBook, onTogg
       </div>
 
       {/* Venue stats */}
-      <div className="px-4 py-2 bg-slate-800/50 border-y border-slate-700 grid grid-cols-2 gap-2 text-xs">
+      <div className="px-3 py-1.5 bg-slate-800/50 border-y border-slate-700 grid grid-cols-2 gap-2 text-[11px]">
         <div>
           <span className="text-slate-500">Maker: </span>
           <span className={venue.makerFee < 0 ? 'text-bid' : 'text-ask'}>
@@ -98,7 +98,7 @@ export const VenuePanel: React.FC<VenuePanelProps> = ({ venue, orderBook, onTogg
       </div>
 
       {/* Order book */}
-      <div className="flex-1 p-3">
+      <div className="flex-1 p-2">
         {orderBook && venue.active ? (
           <OrderBook
             orderBook={orderBook}

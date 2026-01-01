@@ -224,7 +224,7 @@ function App() {
               const venueExecutionDetail = progressiveExecutionDetails.get(venue.id);
 
               return (
-                <div key={venue.id} className="h-[600px]">
+                <div key={venue.id} className="h-[500px]">
                   <VenuePanel
                     venue={venue}
                     orderBook={orderBooks.get(venue.id) || null}

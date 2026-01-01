@@ -27,16 +27,16 @@ export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor: _ve
     });
   }
 
-  // Préparer les données : prendre les 10 meilleurs de chaque côté
-  const bidLevels = orderBook.bids.slice(0, 10); // Déjà trié décroissant (meilleur prix en premier)
-  const askLevels = orderBook.asks.slice(0, 10); // Déjà trié croissant (meilleur prix en premier)
+  // Préparer les données : prendre les 5 meilleurs de chaque côté (10 lignes au total)
+  const bidLevels = orderBook.bids.slice(0, 5); // Déjà trié décroissant (meilleur prix en premier)
+  const askLevels = orderBook.asks.slice(0, 5); // Déjà trié croissant (meilleur prix en premier)
 
   const maxRows = Math.max(bidLevels.length, askLevels.length);
 
   return (
     <div className="flex flex-col h-full bg-slate-800 rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-4 text-xs px-2 py-1.5 bg-slate-900 border-b border-slate-700 gap-2">
+      <div className="grid grid-cols-4 text-[11px] px-2 py-1 bg-slate-900 border-b border-slate-700 gap-2">
         <span className="text-bid font-semibold text-right">Qty BID</span>
         <span className="text-bid font-semibold text-center">BID</span>
         <span className="text-ask font-semibold text-center">ASK</span>
@@ -45,8 +45,8 @@ export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor: _ve
 
       <div className="flex-1 overflow-y-auto order-book-scroll">
         {/* Spread en première ligne */}
-        <div className="flex justify-center items-center py-2 bg-slate-700/30 border-b border-slate-700">
-          <div className="text-xs">
+        <div className="flex justify-center items-center py-1 bg-slate-700/30 border-b border-slate-700">
+          <div className="text-[11px]">
             <span className="text-slate-500">Spread: </span>
             <span className="text-slate-300 font-mono font-semibold">
               ${orderBook.spread.toFixed(4)}
@@ -63,7 +63,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor: _ve
           const askExecution = askLevel ? executionByPrice.get(askLevel.price) : undefined;
 
           return (
-            <div key={`row-${i}`} className="grid grid-cols-4 text-xs py-0.5 px-2 hover:bg-slate-700/30 transition-colors gap-2">
+            <div key={`row-${i}`} className="grid grid-cols-4 text-[11px] py-0.5 px-2 hover:bg-slate-700/30 transition-colors gap-2">
               {/* Quantité BID avec barre */}
               <div className={`relative text-right ${bidExecution ? 'bg-blue-500/20 border-r-2 border-blue-500' : ''}`}>
                 {bidLevel && (
