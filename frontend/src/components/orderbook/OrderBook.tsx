@@ -28,8 +28,8 @@ export const OrderBook: React.FC<OrderBookProps> = ({ orderBook, venueColor: _ve
   }
 
   // Préparer les données : prendre les 10 meilleurs de chaque côté
-  const bidLevels = orderBook.bids.slice(0, 10);
-  const askLevels = orderBook.asks.slice(0, 10).reverse(); // Inverser pour avoir meilleur ask en haut
+  const bidLevels = orderBook.bids.slice(0, 10); // Déjà trié décroissant (meilleur prix en premier)
+  const askLevels = orderBook.asks.slice(0, 10); // Déjà trié croissant (meilleur prix en premier)
 
   const maxRows = Math.max(bidLevels.length, askLevels.length);
 
