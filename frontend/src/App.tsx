@@ -52,6 +52,40 @@ function App() {
     return () => clearInterval(interval);
   }, [isPaused, updateOrderBooks]);
 
+  // Calculer les executionDetails progressifs (seulement jusqu'à currentStepIndex)
+  const progressiveExecutionDetails = useMemo(() => {
+    // Afficher les exécutions tant que currentStepIndex >= 0 (même après la fin de l'animation)
+    if (executionSteps.length === 0 || currentStepIndex < 0) {
+      return new Map();
+    }
+
+    // Reconstruire executionDetails en ne prenant que les steps jusqu'à currentStepIndex
+    const progressive = new Map<string, any>();
+
+    executionSteps.slice(0, currentStepIndex + 1).forEach(step => {
+      if (!progressive.has(step.venueId)) {
+        progressive.set(step.venueId, {
+          venueId: step.venueId,
+          side: executionDetails?.get(step.venueId)?.side || 'ask',
+          totalQuantity: 0,
+          levels: [],
+          avgPrice: 0
+        });
+      }
+
+      const detail = progressive.get(step.venueId);
+      detail.totalQuantity += step.quantity || 0;
+      detail.levels.push({
+        price: step.price || 0,
+        quantityTaken: step.quantity || 0,
+        quantityRemaining: 0,
+        percentageTaken: 100
+      });
+    });
+
+    return progressive;
+  }, [executionSteps, currentStepIndex, executionDetails]);
+
   // Calculer l'état d'exécution pour chaque venue (optimisé avec useMemo)
   const venueExecutionStates = useMemo(() => {
     const states = new Map<string, { isExecuting: boolean; executedQuantity: number; isCurrentStep: boolean }>();
@@ -187,7 +221,7 @@ function App() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {venues.map((venue) => {
               const executionState = venueExecutionStates.get(venue.id);
-              const venueExecutionDetail = executionDetails?.get(venue.id);
+              const venueExecutionDetail = progressiveExecutionDetails.get(venue.id);
 
               return (
                 <div key={venue.id} className="h-[600px]">
@@ -209,7 +243,7 @@ function App() {
           </div>
         </>
       ) : (
-        <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={executionDetails} />
+        <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={progressiveExecutionDetails} />
       )}
 
       {/* Execution Timeline - affichée en bas pendant et après l'exécution */}

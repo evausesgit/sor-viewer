@@ -221,7 +221,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
 
   // Stop execution and clean up
   stopExecution: () => {
-    const { animationTimerId, currentOrder } = get();
+    const { animationTimerId, currentOrder, executionSteps } = get();
 
     // Arrêter le timer
     if (animationTimerId !== null) {
@@ -234,11 +234,13 @@ export const useMarketStore = create<MarketState>((set, get) => ({
       status: OrderStatus.FILLED
     } : null;
 
-    // Nettoyer l'état
+    // Nettoyer l'état MAIS garder currentStepIndex sur la dernière étape
+    // pour que les quantités barrées restent visibles
     set({
       isExecuting: false,
       animationTimerId: null,
-      currentStepIndex: -1,
+      // Ne pas remettre currentStepIndex à -1, garder la dernière étape
+      currentStepIndex: executionSteps.length > 0 ? executionSteps.length - 1 : -1,
       currentOrder: finalOrder
     });
   },
