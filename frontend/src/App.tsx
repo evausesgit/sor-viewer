@@ -12,7 +12,8 @@ import { VWAPView } from './components/vwap/VWAPView';
 import type { OrderSide, OrderType, Order } from './core/types/market';
 import { OrderStatus } from './core/types/market';
 
-type TabType = 'venues' | 'aggregated' | 'vwap';
+type MainTabType = 'sor' | 'vwap';
+type SORSubTabType = 'venues' | 'aggregated';
 
 function App() {
   const {
@@ -31,7 +32,8 @@ function App() {
     isPaused,
     togglePause
   } = useMarketStore();
-  const [activeTab, setActiveTab] = useState<TabType>('aggregated');
+  const [mainTab, setMainTab] = useState<MainTabType>('sor');
+  const [sorSubTab, setSorSubTab] = useState<SORSubTabType>('aggregated');
 
   // Initialize market on mount
   useEffect(() => {
@@ -178,44 +180,23 @@ function App() {
         </p>
       </div>
 
-      {/* Order Control Panel */}
-      <div className="mb-6">
-        <OrderControlPanel
-          symbol={symbol}
-          onRefresh={handleRefresh}
-          onRouteOrder={handleRouteOrder}
-          isPaused={isPaused}
-          onTogglePause={togglePause}
-        />
-      </div>
-
-      {/* Tabs */}
+      {/* Main Tabs */}
       <div className="mb-6 border-b border-slate-700">
         <div className="flex gap-2">
           <button
-            onClick={() => setActiveTab('venues')}
+            onClick={() => setMainTab('sor')}
             className={`px-6 py-3 font-medium transition-colors border-b-2 ${
-              activeTab === 'venues'
+              mainTab === 'sor'
                 ? 'text-blue-400 border-blue-400'
                 : 'text-slate-400 border-transparent hover:text-slate-300'
             }`}
           >
-            Venue Grid
+            SOR Execution
           </button>
           <button
-            onClick={() => setActiveTab('aggregated')}
+            onClick={() => setMainTab('vwap')}
             className={`px-6 py-3 font-medium transition-colors border-b-2 ${
-              activeTab === 'aggregated'
-                ? 'text-blue-400 border-blue-400'
-                : 'text-slate-400 border-transparent hover:text-slate-300'
-            }`}
-          >
-            Aggregated Order Book
-          </button>
-          <button
-            onClick={() => setActiveTab('vwap')}
-            className={`px-6 py-3 font-medium transition-colors border-b-2 ${
-              activeTab === 'vwap'
+              mainTab === 'vwap'
                 ? 'text-blue-400 border-blue-400'
                 : 'text-slate-400 border-transparent hover:text-slate-300'
             }`}
@@ -225,58 +206,93 @@ function App() {
         </div>
       </div>
 
-      {/* Content avec timeline sur le côté si exécution en cours */}
-      {activeTab === 'vwap' ? (
-        // VWAP view is full-width and manages its own layout
+      {/* Content based on main tab */}
+      {mainTab === 'vwap' ? (
         <VWAPView />
       ) : (
-        <div className="flex gap-6">
-          {/* Main content area */}
-          <div className="flex-1">
-            {activeTab === 'venues' ? (
-              <>
-                {/* Venue Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {venues.map((venue) => {
-                    const executionState = venueExecutionStates.get(venue.id);
-                    const venueExecutionDetail = progressiveExecutionDetails.get(venue.id);
-
-                    return (
-                      <div key={venue.id}>
-                        <VenuePanel
-                          venue={venue}
-                          orderBook={orderBooks.get(venue.id) || null}
-                          onToggle={toggleVenue}
-                          executionState={executionState}
-                          executionDetail={venueExecutionDetail}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Footer info */}
-                <div className="mt-6 text-center text-xs text-slate-500">
-                  Order books update every 2 seconds to simulate market movement
-                </div>
-              </>
-            ) : (
-              <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={progressiveExecutionDetails} />
-            )}
+        <>
+          {/* Order Control Panel - only for SOR */}
+          <div className="mb-6">
+            <OrderControlPanel
+              symbol={symbol}
+              onRefresh={handleRefresh}
+              onRouteOrder={handleRouteOrder}
+              isPaused={isPaused}
+              onTogglePause={togglePause}
+            />
           </div>
 
-          {/* Execution Timeline - affichée sur le côté droit pendant et après l'exécution */}
-          {executionSteps.length > 0 && (
-            <div className="w-80 flex-shrink-0">
-              <ExecutionTimeline
-                executionSteps={executionSteps}
-                currentStepIndex={currentStepIndex}
-                venues={venues}
-                isExecuting={isExecuting}
-              />
+          {/* SOR Sub-tabs */}
+          <div className="mb-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSorSubTab('venues')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  sorSubTab === 'venues'
+                    ? 'bg-slate-700 text-slate-100'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                }`}
+              >
+                Venue Grid
+              </button>
+              <button
+                onClick={() => setSorSubTab('aggregated')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  sorSubTab === 'aggregated'
+                    ? 'bg-slate-700 text-slate-100'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                }`}
+              >
+                Aggregated Order Book
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+
+          {/* SOR Content */}
+          <div className="flex gap-6">
+            <div className="flex-1">
+              {sorSubTab === 'venues' ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {venues.map((venue) => {
+                      const executionState = venueExecutionStates.get(venue.id);
+                      const venueExecutionDetail = progressiveExecutionDetails.get(venue.id);
+
+                      return (
+                        <div key={venue.id}>
+                          <VenuePanel
+                            venue={venue}
+                            orderBook={orderBooks.get(venue.id) || null}
+                            onToggle={toggleVenue}
+                            executionState={executionState}
+                            executionDetail={venueExecutionDetail}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-6 text-center text-xs text-slate-500">
+                    Order books update every 2 seconds to simulate market movement
+                  </div>
+                </>
+              ) : (
+                <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={progressiveExecutionDetails} />
+              )}
+            </div>
+
+            {/* Execution Timeline */}
+            {executionSteps.length > 0 && (
+              <div className="w-80 flex-shrink-0">
+                <ExecutionTimeline
+                  executionSteps={executionSteps}
+                  currentStepIndex={currentStepIndex}
+                  venues={venues}
+                  isExecuting={isExecuting}
+                />
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
