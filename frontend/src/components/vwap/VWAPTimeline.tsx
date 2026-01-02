@@ -62,7 +62,7 @@ export const VWAPTimeline: React.FC<VWAPTimelineProps> = ({
         </div>
 
         {/* Barres */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {slices.map((slice, index) => {
             const volumeSlot = volumeProfile.timeSlots.find(
               slot => slot.startTime === slice.startTime
@@ -75,65 +75,87 @@ export const VWAPTimeline: React.FC<VWAPTimelineProps> = ({
             const isCurrent = index === currentSliceIndex;
             const isPending = index > currentSliceIndex;
 
-            // Hauteurs normalisées
-            const volumeHeight = volumeSlot
+            // Largeurs normalisées (en %)
+            const volumeWidth = volumeSlot
               ? (volumeSlot.averageVolume / maxVolume) * 100
               : 0;
-            const plannedHeight = (slice.targetQuantity / maxSliceQty) * 100;
-            const executedHeight = executedSlice
+            const plannedWidth = (slice.targetQuantity / maxSliceQty) * 100;
+            const executedWidth = executedSlice
               ? (executedSlice.executedQuantity / maxSliceQty) * 100
               : 0;
 
             return (
-              <div key={index} className="group">
-                {/* Time label */}
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono text-slate-400 w-24">
+              <div key={index} className={`rounded-lg p-3 ${
+                isCurrent ? 'bg-slate-800 ring-1 ring-blue-500' :
+                isCompleted ? 'bg-slate-800/50' : 'bg-slate-800/30'
+              }`}>
+                {/* Header: Time + Status */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-sm font-mono ${
+                    isCurrent ? 'text-blue-400 font-bold' :
+                    isCompleted ? 'text-green-400' : 'text-slate-400'
+                  }`}>
                     {slice.startTime} - {slice.endTime}
                   </span>
-
-                  {/* 3 barres côte à côte - hauteur max 40px */}
-                  <div className="flex-1 flex gap-1 items-end" style={{ height: '40px' }}>
-                    {/* Market Volume */}
-                    <div
-                      className="flex-1 bg-slate-600 rounded-t transition-all duration-300"
-                      style={{ height: `${Math.max(volumeHeight * 0.4, 2)}px` }}
-                    />
-
-                    {/* Planned Execution */}
-                    <div
-                      className={`flex-1 rounded-t transition-all duration-300 ${
-                        isCurrent ? 'bg-blue-500 animate-pulse' : 'bg-blue-500'
-                      }`}
-                      style={{ height: `${Math.max(plannedHeight * 0.4, 2)}px`, opacity: isCompleted ? 0.5 : 1 }}
-                    />
-
-                    {/* Executed */}
-                    <div
-                      className="flex-1 bg-green-500 rounded-t transition-all duration-500"
-                      style={{ height: executedSlice ? `${Math.max(executedHeight * 0.4, 2)}px` : '0px' }}
-                    />
+                  <div className="flex items-center gap-2">
+                    {isCompleted && <span className="text-green-400 text-sm">✓ Filled</span>}
+                    {isCurrent && <span className="text-blue-400 text-sm animate-pulse">⚡ Executing</span>}
+                    {isPending && <span className="text-slate-500 text-sm">○ Pending</span>}
                   </div>
+                </div>
 
-                  {/* Quantités */}
-                  <div className="text-xs font-mono w-32 text-right space-y-0.5">
-                    <div className="text-slate-500">
+                {/* 3 barres horizontales empilées */}
+                <div className="space-y-1.5">
+                  {/* Market Volume */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 w-16">Market</span>
+                    <div className="flex-1 h-4 bg-slate-900 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-slate-600 rounded transition-all duration-300"
+                        style={{ width: `${volumeWidth}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono text-slate-500 w-20 text-right">
                       {volumeSlot?.averageVolume.toLocaleString() || '-'}
-                    </div>
-                    <div className="text-blue-400">
-                      {slice.targetQuantity.toLocaleString()}
-                    </div>
-                    <div className={`${executedSlice ? 'text-green-400 font-bold' : 'text-slate-600'}`}>
-                      {executedSlice ? executedSlice.executedQuantity.toLocaleString() : '-'}
-                    </div>
+                    </span>
                   </div>
 
-                  {/* Status indicator */}
-                  <div className="w-5">
-                    {isCompleted && <span className="text-green-400">✓</span>}
-                    {isCurrent && <span className="text-blue-400">⚡</span>}
-                    {isPending && <span className="text-slate-600">○</span>}
+                  {/* Planned Execution */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-blue-400 w-16">Planned</span>
+                    <div className="flex-1 h-4 bg-slate-900 rounded overflow-hidden">
+                      <div
+                        className={`h-full rounded transition-all duration-300 ${
+                          isCurrent ? 'bg-blue-500 animate-pulse' : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${plannedWidth}%`, opacity: isCompleted ? 0.5 : 1 }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono text-blue-400 w-20 text-right">
+                      {slice.targetQuantity.toLocaleString()}
+                    </span>
                   </div>
+
+                  {/* Executed - se remplit progressivement */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-400 w-16">Executed</span>
+                    <div className="flex-1 h-4 bg-slate-900 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-green-500 rounded transition-all duration-700 ease-out"
+                        style={{ width: `${executedWidth}%` }}
+                      />
+                    </div>
+                    <span className={`text-xs font-mono w-20 text-right ${
+                      executedSlice ? 'text-green-400 font-bold' : 'text-slate-600'
+                    }`}>
+                      {executedSlice ? executedSlice.executedQuantity.toLocaleString() : '-'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Participation rate */}
+                <div className="mt-2 text-xs text-slate-500">
+                  Participation: {slice.participationRate.toFixed(1)}%
                 </div>
               </div>
             );
