@@ -92,33 +92,27 @@ export const VWAPTimeline: React.FC<VWAPTimelineProps> = ({
                     {slice.startTime} - {slice.endTime}
                   </span>
 
-                  {/* 3 barres côte à côte */}
-                  <div className="flex-1 flex gap-1 h-10 items-end">
+                  {/* 3 barres côte à côte - hauteur max 40px */}
+                  <div className="flex-1 flex gap-1 items-end" style={{ height: '40px' }}>
                     {/* Market Volume */}
-                    <div className="flex-1 flex flex-col items-center">
-                      <div
-                        className="w-full bg-slate-600 rounded-t transition-all duration-300"
-                        style={{ height: `${volumeHeight}%` }}
-                      />
-                    </div>
+                    <div
+                      className="flex-1 bg-slate-600 rounded-t transition-all duration-300"
+                      style={{ height: `${Math.max(volumeHeight * 0.4, 2)}px` }}
+                    />
 
                     {/* Planned Execution */}
-                    <div className="flex-1 flex flex-col items-center">
-                      <div
-                        className={`w-full rounded-t transition-all duration-300 ${
-                          isCurrent ? 'bg-blue-500 animate-pulse' : 'bg-blue-500'
-                        }`}
-                        style={{ height: `${plannedHeight}%`, opacity: isCompleted ? 0.5 : 1 }}
-                      />
-                    </div>
+                    <div
+                      className={`flex-1 rounded-t transition-all duration-300 ${
+                        isCurrent ? 'bg-blue-500 animate-pulse' : 'bg-blue-500'
+                      }`}
+                      style={{ height: `${Math.max(plannedHeight * 0.4, 2)}px`, opacity: isCompleted ? 0.5 : 1 }}
+                    />
 
                     {/* Executed */}
-                    <div className="flex-1 flex flex-col items-center">
-                      <div
-                        className="w-full bg-green-500 rounded-t transition-all duration-500"
-                        style={{ height: `${executedHeight}%` }}
-                      />
-                    </div>
+                    <div
+                      className="flex-1 bg-green-500 rounded-t transition-all duration-500"
+                      style={{ height: executedSlice ? `${Math.max(executedHeight * 0.4, 2)}px` : '0px' }}
+                    />
                   </div>
 
                   {/* Quantités */}
