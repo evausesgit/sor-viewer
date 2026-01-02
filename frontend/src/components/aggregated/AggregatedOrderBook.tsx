@@ -2,7 +2,7 @@
  * Aggregated Order Book component - displays consolidated order book across all venues
  */
 
-import { useMemo, Fragment } from 'react';
+import { useMemo } from 'react';
 import type { Venue, OrderBook } from '../../core/types/market';
 import type { VenueExecutionDetail } from '../../core/sor/execution-simulator';
 
