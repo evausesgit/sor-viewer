@@ -166,7 +166,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6 pb-32">
+    <div className="min-h-screen bg-slate-950 p-6">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-100 mb-2">
@@ -214,45 +214,54 @@ function App() {
         </div>
       </div>
 
-      {/* Content */}
-      {activeTab === 'venues' ? (
-        <>
-          {/* Venue Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {venues.map((venue) => {
-              const executionState = venueExecutionStates.get(venue.id);
-              const venueExecutionDetail = progressiveExecutionDetails.get(venue.id);
+      {/* Content avec timeline sur le côté si exécution en cours */}
+      <div className="flex gap-6">
+        {/* Main content area */}
+        <div className="flex-1">
+          {activeTab === 'venues' ? (
+            <>
+              {/* Venue Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {venues.map((venue) => {
+                  const executionState = venueExecutionStates.get(venue.id);
+                  const venueExecutionDetail = progressiveExecutionDetails.get(venue.id);
 
-              return (
-                <div key={venue.id}>
-                  <VenuePanel
-                    venue={venue}
-                    orderBook={orderBooks.get(venue.id) || null}
-                    onToggle={toggleVenue}
-                    executionState={executionState}
-                    executionDetail={venueExecutionDetail}
-                  />
-                </div>
-              );
-            })}
+                  return (
+                    <div key={venue.id}>
+                      <VenuePanel
+                        venue={venue}
+                        orderBook={orderBooks.get(venue.id) || null}
+                        onToggle={toggleVenue}
+                        executionState={executionState}
+                        executionDetail={venueExecutionDetail}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer info */}
+              <div className="mt-6 text-center text-xs text-slate-500">
+                Order books update every 2 seconds to simulate market movement
+              </div>
+            </>
+          ) : (
+            <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={progressiveExecutionDetails} />
+          )}
+        </div>
+
+        {/* Execution Timeline - affichée sur le côté droit pendant et après l'exécution */}
+        {executionSteps.length > 0 && (
+          <div className="w-80 flex-shrink-0">
+            <ExecutionTimeline
+              executionSteps={executionSteps}
+              currentStepIndex={currentStepIndex}
+              venues={venues}
+              isExecuting={isExecuting}
+            />
           </div>
-
-          {/* Footer info */}
-          <div className="mt-6 text-center text-xs text-slate-500">
-            Order books update every 2 seconds to simulate market movement
-          </div>
-        </>
-      ) : (
-        <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={progressiveExecutionDetails} />
-      )}
-
-      {/* Execution Timeline - affichée en bas pendant et après l'exécution */}
-      <ExecutionTimeline
-        executionSteps={executionSteps}
-        currentStepIndex={currentStepIndex}
-        venues={venues}
-        isExecuting={isExecuting}
-      />
+        )}
+      </div>
     </div>
   );
 }
