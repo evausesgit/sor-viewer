@@ -8,10 +8,11 @@ import { VenuePanel } from './components/venue/VenuePanel';
 import { AggregatedOrderBook } from './components/aggregated/AggregatedOrderBook';
 import { OrderControlPanel } from './components/control/OrderControlPanel';
 import { ExecutionTimeline } from './components/execution/ExecutionTimeline';
+import { VWAPView } from './components/vwap/VWAPView';
 import type { OrderSide, OrderType, Order } from './core/types/market';
 import { OrderStatus } from './core/types/market';
 
-type TabType = 'venues' | 'aggregated';
+type TabType = 'venues' | 'aggregated' | 'vwap';
 
 function App() {
   const {
@@ -211,57 +212,72 @@ function App() {
           >
             Aggregated Order Book
           </button>
+          <button
+            onClick={() => setActiveTab('vwap')}
+            className={`px-6 py-3 font-medium transition-colors border-b-2 ${
+              activeTab === 'vwap'
+                ? 'text-blue-400 border-blue-400'
+                : 'text-slate-400 border-transparent hover:text-slate-300'
+            }`}
+          >
+            VWAP Execution
+          </button>
         </div>
       </div>
 
       {/* Content avec timeline sur le côté si exécution en cours */}
-      <div className="flex gap-6">
-        {/* Main content area */}
-        <div className="flex-1">
-          {activeTab === 'venues' ? (
-            <>
-              {/* Venue Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {venues.map((venue) => {
-                  const executionState = venueExecutionStates.get(venue.id);
-                  const venueExecutionDetail = progressiveExecutionDetails.get(venue.id);
+      {activeTab === 'vwap' ? (
+        // VWAP view is full-width and manages its own layout
+        <VWAPView />
+      ) : (
+        <div className="flex gap-6">
+          {/* Main content area */}
+          <div className="flex-1">
+            {activeTab === 'venues' ? (
+              <>
+                {/* Venue Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {venues.map((venue) => {
+                    const executionState = venueExecutionStates.get(venue.id);
+                    const venueExecutionDetail = progressiveExecutionDetails.get(venue.id);
 
-                  return (
-                    <div key={venue.id}>
-                      <VenuePanel
-                        venue={venue}
-                        orderBook={orderBooks.get(venue.id) || null}
-                        onToggle={toggleVenue}
-                        executionState={executionState}
-                        executionDetail={venueExecutionDetail}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+                    return (
+                      <div key={venue.id}>
+                        <VenuePanel
+                          venue={venue}
+                          orderBook={orderBooks.get(venue.id) || null}
+                          onToggle={toggleVenue}
+                          executionState={executionState}
+                          executionDetail={venueExecutionDetail}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
 
-              {/* Footer info */}
-              <div className="mt-6 text-center text-xs text-slate-500">
-                Order books update every 2 seconds to simulate market movement
-              </div>
-            </>
-          ) : (
-            <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={progressiveExecutionDetails} />
+                {/* Footer info */}
+                <div className="mt-6 text-center text-xs text-slate-500">
+                  Order books update every 2 seconds to simulate market movement
+                </div>
+              </>
+            ) : (
+              <AggregatedOrderBook venues={venues} orderBooks={orderBooks} executionDetails={progressiveExecutionDetails} />
+            )}
+          </div>
+
+          {/* Execution Timeline - affichée sur le côté droit pendant et après l'exécution */}
+          {executionSteps.length > 0 && (
+            <div className="w-80 flex-shrink-0">
+              <ExecutionTimeline
+                executionSteps={executionSteps}
+                currentStepIndex={currentStepIndex}
+                venues={venues}
+                isExecuting={isExecuting}
+              />
+            </div>
           )}
         </div>
-
-        {/* Execution Timeline - affichée sur le côté droit pendant et après l'exécution */}
-        {executionSteps.length > 0 && (
-          <div className="w-80 flex-shrink-0">
-            <ExecutionTimeline
-              executionSteps={executionSteps}
-              currentStepIndex={currentStepIndex}
-              venues={venues}
-              isExecuting={isExecuting}
-            />
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
