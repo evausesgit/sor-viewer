@@ -43,13 +43,15 @@ export interface VWAPSlice {
   status: SliceStatus;
 }
 
-export enum SliceStatus {
-  PENDING = 'pending',
-  EXECUTING = 'executing',
-  FILLED = 'filled',
-  PARTIAL = 'partial',
-  CANCELLED = 'cancelled'
-}
+export const SliceStatus = {
+  PENDING: 'pending',
+  EXECUTING: 'executing',
+  FILLED: 'filled',
+  PARTIAL: 'partial',
+  CANCELLED: 'cancelled'
+} as const;
+
+export type SliceStatus = typeof SliceStatus[keyof typeof SliceStatus];
 
 export interface ExecutedSlice extends VWAPSlice {
   executedQuantity: number;

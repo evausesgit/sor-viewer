@@ -86,7 +86,7 @@ function filterRelevantTimeSlots(
 function calculateSliceDistribution(
   config: VWAPConfig,
   timeSlots: VolumeProfile['timeSlots'],
-  startTime: string
+  _startTime: string
 ): VWAPSlice[] {
   // Calculer le volume total sur l'horizon
   const totalVolume = timeSlots.reduce((sum, slot) => sum + slot.averageVolume, 0);
@@ -177,7 +177,7 @@ function getAggressivenessFactor(aggressiveness: VWAPConfig['aggressiveness']): 
 /**
  * Estime le VWAP attendu (simplifié pour MVP)
  */
-function estimateVWAP(slices: VWAPSlice[]): number {
+function estimateVWAP(_slices: VWAPSlice[]): number {
   // Pour l'instant, on assume un prix de base
   // Dans une version complète, on utiliserait les prix réels du marché
   return 100.0; // Prix de base
