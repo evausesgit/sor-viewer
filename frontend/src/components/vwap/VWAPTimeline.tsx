@@ -9,7 +9,6 @@
 
 import React from 'react';
 import type { VWAPSlice, VolumeProfile } from '../../core/types/vwap';
-import { SliceStatus } from '../../core/types/vwap';
 
 interface VWAPTimelineProps {
   volumeProfile: VolumeProfile;
