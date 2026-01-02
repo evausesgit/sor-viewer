@@ -1,18 +1,19 @@
 /**
  * VWAPTimeline - Timeline horizontale avec barres de volume
  *
- * Affiche :
+ * Affiche pour chaque tranche :
  * - Volume historique du marché (barres grises)
- * - Quantité planifiée/exécutée (barres bleues/vertes)
- * - Animation progressive pendant l'exécution
+ * - Quantité planifiée (barres bleues)
+ * - Quantité exécutée (barres vertes) pour comparaison
  */
 
 import React from 'react';
-import type { VWAPSlice, VolumeProfile } from '../../core/types/vwap';
+import type { VWAPSlice, VolumeProfile, ExecutedSlice } from '../../core/types/vwap';
 
 interface VWAPTimelineProps {
   volumeProfile: VolumeProfile;
   slices: VWAPSlice[];
+  executedSlices: ExecutedSlice[];
   currentSliceIndex: number;
   isExecuting: boolean;
 }
@@ -20,12 +21,16 @@ interface VWAPTimelineProps {
 export const VWAPTimeline: React.FC<VWAPTimelineProps> = ({
   volumeProfile,
   slices,
+  executedSlices,
   currentSliceIndex,
   isExecuting
 }) => {
   // Trouver le volume maximum pour normaliser les barres
   const maxVolume = Math.max(...volumeProfile.timeSlots.map(slot => slot.averageVolume));
-  const maxSliceQty = Math.max(...slices.map(slice => slice.targetQuantity));
+  const maxSliceQty = Math.max(
+    ...slices.map(slice => slice.targetQuantity),
+    ...executedSlices.map(slice => slice.executedQuantity)
+  );
 
   return (
     <div className="bg-slate-900 rounded-lg border border-slate-700 p-6">
@@ -57,75 +62,77 @@ export const VWAPTimeline: React.FC<VWAPTimelineProps> = ({
         </div>
 
         {/* Barres */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {slices.map((slice, index) => {
             const volumeSlot = volumeProfile.timeSlots.find(
               slot => slot.startTime === slice.startTime
+            );
+            const executedSlice = executedSlices.find(
+              es => es.sliceNumber === slice.sliceNumber
             );
 
             const isCompleted = index < currentSliceIndex;
             const isCurrent = index === currentSliceIndex;
             const isPending = index > currentSliceIndex;
 
-            // Hauteur des barres (normalisée)
+            // Hauteurs normalisées
             const volumeHeight = volumeSlot
               ? (volumeSlot.averageVolume / maxVolume) * 100
               : 0;
-
-            const sliceHeight = (slice.targetQuantity / maxSliceQty) * 100;
+            const plannedHeight = (slice.targetQuantity / maxSliceQty) * 100;
+            const executedHeight = executedSlice
+              ? (executedSlice.executedQuantity / maxSliceQty) * 100
+              : 0;
 
             return (
               <div key={index} className="group">
                 {/* Time label */}
-                <div className="flex items-center gap-3 mb-1">
+                <div className="flex items-center gap-3">
                   <span className="text-xs font-mono text-slate-400 w-24">
                     {slice.startTime} - {slice.endTime}
                   </span>
 
-                  {/* Barre de volume marché (background) */}
-                  <div className="flex-1 relative h-8">
-                    {/* Volume du marché */}
-                    <div
-                      className="absolute bottom-0 left-0 bg-slate-700 rounded transition-all duration-300"
-                      style={{
-                        width: '100%',
-                        height: `${volumeHeight}%`,
-                        opacity: 0.5
-                      }}
-                    />
+                  {/* 3 barres côte à côte */}
+                  <div className="flex-1 flex gap-1 h-10 items-end">
+                    {/* Market Volume */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <div
+                        className="w-full bg-slate-600 rounded-t transition-all duration-300"
+                        style={{ height: `${volumeHeight}%` }}
+                      />
+                    </div>
 
-                    {/* Notre exécution */}
-                    <div
-                      className={`
-                        absolute bottom-0 left-0 rounded transition-all duration-500
-                        ${isCompleted ? 'bg-green-500' : ''}
-                        ${isCurrent ? 'bg-blue-500 animate-pulse' : ''}
-                        ${isPending ? 'bg-blue-500/40' : ''}
-                      `}
-                      style={{
-                        width: '100%',
-                        height: `${sliceHeight}%`
-                      }}
-                    />
+                    {/* Planned Execution */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <div
+                        className={`w-full rounded-t transition-all duration-300 ${
+                          isCurrent ? 'bg-blue-500 animate-pulse' : 'bg-blue-500'
+                        }`}
+                        style={{ height: `${plannedHeight}%`, opacity: isCompleted ? 0.5 : 1 }}
+                      />
+                    </div>
 
-                    {/* Tooltip on hover */}
-                    <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-10 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs whitespace-nowrap">
-                      <div>Market Vol: {volumeSlot?.averageVolume.toLocaleString()} shares</div>
-                      <div>Target Qty: {slice.targetQuantity.toLocaleString()} shares</div>
-                      <div>Participation: {slice.participationRate.toFixed(2)}%</div>
-                      <div className="capitalize">Status: {slice.status}</div>
+                    {/* Executed */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <div
+                        className="w-full bg-green-500 rounded-t transition-all duration-500"
+                        style={{ height: `${executedHeight}%` }}
+                      />
                     </div>
                   </div>
 
-                  {/* Quantité */}
-                  <span className={`
-                    text-xs font-mono w-20 text-right
-                    ${isCompleted ? 'text-green-400 font-bold' : ''}
-                    ${isCurrent ? 'text-blue-400 font-bold' : ''}
-                    ${isPending ? 'text-slate-500' : ''}
-                  `}>
-                    {slice.targetQuantity.toLocaleString()}
-                  </span>
+                  {/* Quantités */}
+                  <div className="text-xs font-mono w-32 text-right space-y-0.5">
+                    <div className="text-slate-500">
+                      {volumeSlot?.averageVolume.toLocaleString() || '-'}
+                    </div>
+                    <div className="text-blue-400">
+                      {slice.targetQuantity.toLocaleString()}
+                    </div>
+                    <div className={`${executedSlice ? 'text-green-400 font-bold' : 'text-slate-600'}`}>
+                      {executedSlice ? executedSlice.executedQuantity.toLocaleString() : '-'}
+                    </div>
+                  </div>
 
                   {/* Status indicator */}
                   <div className="w-5">

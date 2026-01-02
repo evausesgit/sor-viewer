@@ -217,15 +217,7 @@ export const VWAPView: React.FC = () => {
 
           {/* Main Content Area */}
           <div className="flex-1 space-y-6">
-            {/* Metrics Dashboard */}
-            {execution && (
-              <VWAPMetricsDisplay
-                metrics={execution.metrics}
-                isExecuting={isExecuting}
-              />
-            )}
-
-            {/* Timeline Visualization */}
+            {/* Timeline Visualization - First */}
             {execution && (
               <VWAPTimeline
                 volumeProfile={execution.strategy.slices.length > 0
@@ -248,7 +240,16 @@ export const VWAPView: React.FC = () => {
                     }
                 }
                 slices={execution.strategy.slices}
+                executedSlices={execution.executedSlices}
                 currentSliceIndex={currentSliceIndex}
+                isExecuting={isExecuting}
+              />
+            )}
+
+            {/* Metrics Dashboard - Second */}
+            {execution && (
+              <VWAPMetricsDisplay
+                metrics={execution.metrics}
                 isExecuting={isExecuting}
               />
             )}
