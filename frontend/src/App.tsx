@@ -171,17 +171,19 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-950 p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-100 mb-2">
-          Smart Order Router Visualizer
-        </h1>
-        <p className="text-slate-400">
-          Educational platform for understanding order routing and best execution
-        </p>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-100">
+            Smart Order Router Visualizer
+          </h1>
+          <p className="text-xs text-slate-500">
+            Educational platform for order routing and best execution
+          </p>
+        </div>
       </div>
 
       {/* Main Tabs */}
-      <div className="mb-6 border-b border-slate-700">
+      <div className="mb-4 border-b border-slate-700">
         <div className="flex gap-2">
           <button
             onClick={() => setMainTab('sor')}

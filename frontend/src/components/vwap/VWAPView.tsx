@@ -192,19 +192,8 @@ export const VWAPView: React.FC = () => {
   }, [isExecuting, execution, currentSliceIndex, executeSlice, calculateMetrics]);
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6">
-      <div className="max-w-[1800px] mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-100 mb-2">
-            VWAP Order Execution
-          </h1>
-          <p className="text-slate-400">
-            Volume-Weighted Average Price execution strategy with market impact modeling
-          </p>
-        </div>
-
-        <div className="flex gap-6">
+    <div className="max-w-[1800px] mx-auto">
+      <div className="flex gap-6">
           {/* Left Sidebar - Order Configuration */}
           <div className="w-96 flex-shrink-0">
             <VWAPOrderPanel
@@ -268,7 +257,6 @@ export const VWAPView: React.FC = () => {
             )}
           </div>
         </div>
-      </div>
     </div>
   );
 };
